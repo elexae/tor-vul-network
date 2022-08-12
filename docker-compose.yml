@@ -1,0 +1,169 @@
+version: '3'
+services:
+  da1:
+    image: tornode:latest
+  #expose:
+  #  - "7000"
+  #  - "9030"
+    environment:
+      ROLE: DA
+    volumes:
+      ## Needed to keep track of other nodes
+      - ./tor:/tor
+  da2:
+    image: tornode:latest
+    #expose:
+    #  - "7000"
+    #  - "9030"
+    environment:
+      ROLE: DA
+    volumes:
+      ## Needed to keep track of other nodes
+      - ./tor:/tor
+  da3:
+    image: tornode:latest
+    #expose:
+    #  - "7000"
+    #  - "9030"
+    environment:
+      ROLE: DA
+    volumes:
+      ## Needed to keep track of other nodes
+      - ./tor:/tor
+  relay:
+    image: tornode:latest
+    #expose:
+    #  - "7000"
+    #  - "9030"
+    environment:
+      ROLE: RELAY
+    volumes:
+      - ./tor:/tor
+    depends_on:
+      # Make sure the DA's are already up
+      - da1
+      - da2
+      - da3
+  exit:
+    image: tornode:latest
+    #expose:
+    #  - "7000"
+    #  - "9030"
+    environment:
+      ROLE: EXIT
+    volumes:
+      - ./tor:/tor
+    depends_on:
+      # Make sure the DA's are already up
+      - da1
+      - da2
+      - da3
+  client:
+    image: tornode:latest
+    ports:
+      # Setups a listener on host machine
+      - "9050:9050"
+      - "9051:9051"
+    volumes:
+      - ./tor:/tor
+    environment:
+      ROLE: CLIENT
+    depends_on: 
+      - da1
+      - da2
+      - da3
+  hs1:
+    image: tornode:latest
+    #expose:
+    #  - "80"
+    environment:
+      ROLE: HS
+      # This will create a hidden service that points to
+      # the service "web" which is runing nginx. You can 
+      # change this to whatever ip or hostname you want
+      TOR_HS_PORT: "80"
+      TOR_HS_ADDR: "gitlab"
+    volumes:
+      - ./tor:/tor
+    depends_on:
+      - da1
+      - da2
+      - da3
+    links:
+      - gitlab
+  
+  redis:
+    image: redis:5.0.9-alpine
+
+  postgresql:
+    image: postgres:12-alpine
+    environment:
+      POSTGRES_USER: gitlab
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: gitlabhq_production
+      DB_EXTENSION: pg_trgm,btree_gist
+
+  gitlab:
+    image: vulhub/gitlab:13.10.1
+    depends_on:
+    - redis
+    - postgresql
+    ports:
+    - "8080:80"
+    - "10022:22"
+    environment:
+      DEBUG: false
+
+      DB_ADAPTER: "postgresql"
+      DB_HOST: "postgresql"
+      DB_PORT: 5432
+      DB_USER: gitlab
+      DB_PASS: password
+      DB_NAME: gitlabhq_production
+
+      REDIS_HOST: "redis"
+      REDIS_PORT: 6379
+
+      GITLAB_HTTPS: false
+      SSL_SELF_SIGNED: false
+
+      GITLAB_HOST: localhost
+      GITLAB_PORT: 8080
+      GITLAB_SSH_PORT: 10022
+      GITLAB_RELATIVE_URL_ROOT: 
+      GITLAB_SECRETS_DB_KEY_BASE: long-long-long-long-long-long-secret-key-is-here1
+      GITLAB_SECRETS_SECRET_KEY_BASE: long-long-long-long-long-long-secret-key-is-here2
+      GITLAB_SECRETS_OTP_KEY_BASE: long-long-long-long-long-long-secret-key-is-her3
+
+      TZ: Asia/Kolkata
+      GITLAB_TIMEZONE: Kolkata
+      GITLAB_ROOT_PASSWORD: vulhub123456
+    links:
+      - redis
+      - postgresql
+  
+  hs2:
+    image: tornode:latest
+    #expose:
+    #  - "80"
+    environment:
+      ROLE: HS
+      # This will create a hidden service that points to
+      # the service "web" which is runing nginx. You can 
+      # change this to whatever ip or hostname you want
+      TOR_HS_PORT: "3000"
+      TOR_HS_ADDR: "gitea"
+    volumes:
+      - ./tor:/tor
+    depends_on:
+      - da1
+      - da2
+      - da3
+    links:
+      - gitea
+
+  gitea:
+    image: vulhub/gitea:1.4.0
+    ports:
+      - "3000:3000"
+      - "20022:22"
