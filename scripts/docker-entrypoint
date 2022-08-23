@@ -37,6 +37,7 @@ if [ ! -e /tor-config-done ]; then
         cat /etc/tor/torrc.da >> /etc/tor/torrc
         echo -e "OrPort ${TOR_ORPORT}" >> /etc/tor/torrc
         echo -e "Dirport ${TOR_DIRPORT}" >> /etc/tor/torrc
+        echo -e "ExitPolicy accept *:*" >> /etc/tor/torrc
         KEYPATH=${TOR_DIR}/${TOR_NICKNAME}/keys
         mkdir -p ${KEYPATH}
         # 生成DA的指纹信息
@@ -57,7 +58,7 @@ if [ ! -e /tor-config-done ]; then
         echo "Setting role to RELAY"
  	      echo -e "OrPort ${TOR_ORPORT}" >> /etc/tor/torrc
         echo -e "Dirport ${TOR_DIRPORT}" >> /etc/tor/torrc
-
+        echo -e "ExitPolicy accept *:*" >> /etc/tor/torrc
         echo "Waiting for other DA's to come up..."
 	      ;;
       EXIT)
